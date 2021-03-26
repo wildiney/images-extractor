@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer')
 const fetch = require('node-fetch')
 const fs = require('fs')
 
-function saveImageToDisk(url, filename) {
+function saveImageToDisk (url, filename) {
   fetch(url)
     .then(res => {
       const dest = fs.createWriteStream(filename)
@@ -14,29 +14,28 @@ function saveImageToDisk(url, filename) {
     })
 }
 
-async function extractImageLinks() {
+async function extractImageLinks () {
   try {
     const browser = await puppeteer.launch({
       // headless: false,
-      executablePath: "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+      executablePath: 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     })
     const page = await browser.newPage()
     await page.goto(process.env.URL, { waitUntil: 'networkidle0' })
     await page.content()
 
-    let allImages = await page.evaluate(() => {
-      let images = Array.from(document.querySelectorAll('img'))
-      let imageArray = []
+    const allImages = await page.evaluate(() => {
+      const images = Array.from(document.querySelectorAll('img'))
+      const imageList = []
       images.map((image) => {
-        let src = image.src
+        const src = image.src
+        const srcPaths = src.split('/')
+        const filename = srcPaths[srcPaths.length - 1]
 
-        let srcArray = src.split('/')
-        let filename = srcArray[srcArray.length - 1]
-
-        imageArray.push({ src, filename })
+        return imageList.push({ src, filename })
       })
-      return imageArray
+      return imageList
     })
     await browser.close()
     return allImages
@@ -46,15 +45,18 @@ async function extractImageLinks() {
 }
 
 (async function () {
-  console.log("Downloading images...")
+  console.log('Downloading images...')
 
-  let imageLinks = await extractImageLinks();
+  try {
+    const imageLinks = await extractImageLinks()
+    imageLinks.forEach((image) => {
+      const filename = `./images/${image.filename}`
+      saveImageToDisk(image.src, filename)
+      console.log(filename, 'saved!')
+    })
 
-  imageLinks.map((image) => {
-    let filename = `./images/${image.filename}`
-    saveImageToDisk(image.src, filename)
-    console.log(filename, "saved!")
-  })
-
-  console.log("Download complete!")
+    console.log('Download complete!')
+  } catch (err) {
+    console.log(err)
+  }
 })()
