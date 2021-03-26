@@ -1,0 +1,5 @@
+.env
+node_modules
+images/*.gif
+images/*.jpg
+images/*.svg
