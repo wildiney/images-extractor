@@ -18,7 +18,7 @@ async function extractImageLinks () {
   try {
     const browser = await puppeteer.launch({
       // headless: false,
-      executablePath: 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      executablePath: process.env.CHROME_EXECUTABLE_PATH,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     })
     const page = await browser.newPage()
