@@ -14,7 +14,7 @@ function saveImageToDisk (url, filename) {
     })
 }
 
-async function extractImageLinks () {
+async function extractImageLinks (selector) {
   try {
     const browser = await puppeteer.launch({
       // headless: false,
@@ -25,18 +25,20 @@ async function extractImageLinks () {
     await page.goto(process.env.URL, { waitUntil: 'networkidle0' })
     await page.content()
 
-    const allImages = await page.evaluate(() => {
-      const images = Array.from(document.querySelectorAll('img'))
+    const allImages = await page.evaluate(({ selector }) => {
+      // const images = Array.from(document.querySelectorAll('img'))
+      const images = Array.from(document.querySelectorAll(selector))
       const imageList = []
       images.map((image) => {
-        const src = image.src
+        // const src = image.src
+        const src = image.href
         const srcPaths = src.split('/')
         const filename = srcPaths[srcPaths.length - 1]
 
         return imageList.push({ src, filename })
       })
       return imageList
-    })
+    }, { selector })
     await browser.close()
     return allImages
   } catch (err) {
@@ -48,12 +50,15 @@ async function extractImageLinks () {
   console.log('Downloading images...')
 
   try {
-    const imageLinks = await extractImageLinks()
-    imageLinks.forEach((image) => {
+    const imageLinks = await extractImageLinks('a[data-fancybox="images"]')
+    for (const image of imageLinks) {
       const filename = `./images/${image.filename}`
+      if (fs.existsSync(filename)) {
+        return
+      }
       saveImageToDisk(image.src, filename)
       console.log(filename, 'saved!')
-    })
+    }
 
     console.log('Download complete!')
   } catch (err) {
