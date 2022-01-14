@@ -2,6 +2,7 @@ require('dotenv').config()
 const puppeteer = require('puppeteer')
 const fetch = require('node-fetch')
 const fs = require('fs')
+const inquirer = require('inquirer')
 
 function saveImageToDisk (url, filename) {
   fetch(url)
@@ -27,11 +28,16 @@ async function extractImageLinks (selector) {
 
     const allImages = await page.evaluate(({ selector }) => {
       // const images = Array.from(document.querySelectorAll('img'))
-      const images = Array.from(document.querySelectorAll(selector))
+      const querySelector = document.querySelectorAll(selector)
+      const images = Array.from(querySelector)
       const imageList = []
       images.map((image) => {
-        // const src = image.src
-        const src = image.href
+        let src
+        if (querySelector === 'img') {
+          src = image.src
+        } else {
+          src = image.href
+        }
         const srcPaths = src.split('/')
         const filename = srcPaths[srcPaths.length - 1]
 
@@ -46,11 +52,11 @@ async function extractImageLinks (selector) {
   }
 }
 
-(async function () {
+async function run (selector) {
   console.log('Downloading images...')
 
   try {
-    const imageLinks = await extractImageLinks('a[data-fancybox="images"]')
+    const imageLinks = await extractImageLinks(selector)
     for (const image of imageLinks) {
       const filename = `./images/${image.filename}`
       if (fs.existsSync(filename)) {
@@ -64,4 +70,14 @@ async function extractImageLinks (selector) {
   } catch (err) {
     console.log(err)
   }
-})()
+}
+
+inquirer
+  .prompt([{
+    name: 'selector',
+    message: "What's the CSS Selector?",
+    default: 'img'
+  }])
+  .then((selector) => {
+    run(selector.selector)
+  })
