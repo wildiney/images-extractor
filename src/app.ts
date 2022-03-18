@@ -15,16 +15,32 @@ interface IImages {
 class ExtractImages {
   protected wsChromeEndpointURL: string | undefined
   protected destinationFolder: string
+  protected newbrowser: puppeteer.Browser | undefined
+  protected page: puppeteer.Page | undefined
 
   constructor () {
     this.wsChromeEndpointURL = process.env.WSCHROME_ENDPOINT_URL
     this.destinationFolder = process.env.DESTINATION_FOLDER || 'images'
+  }
+
+  async init () {
+    if (this.wsChromeEndpointURL !== undefined) {
+      try {
+        this.newbrowser = await puppeteer.connect({ browserWSEndpoint: this.wsChromeEndpointURL })
+      } catch (err) {
+        throw Error('Erro at WS in Chrome')
+      }
+    } else {
+      this.newbrowser = await puppeteer.launch({ headless: false })
+    }
+    this.page = await this.newbrowser.newPage()
+
     this.checkAndCreateFolder()
   }
 
-  async checkAndCreateFolder () {
+  checkAndCreateFolder () {
     if (!fs.existsSync(this.destinationFolder)) {
-      await fs.mkdir(this.destinationFolder, (err) => {
+      fs.mkdir(this.destinationFolder, (err) => {
         if (err !== null) {
           console.log(err)
         }
@@ -51,44 +67,35 @@ class ExtractImages {
   }
 
   async extractImageLinks (selector: string) {
-    console.log(selector)
-    try {
-      // const browser = await puppeteer.connect({ browserWSEndpoint: this.wsChromeEndpointURL })
-      const browser = await puppeteer.launch({
-        headless: false
-        // executablePath: process.env.CHROME_EXECUTABLE_PATH,
-        // args: ['--no-sandbox', '--disable-setuid-sandbox']
-      })
-      const page = await browser.newPage()
-      await page.goto(process.env.URL!, { waitUntil: 'networkidle2' })
-      await page.content()
-      await page.waitForTimeout(6000)
-      console.log('loaded')
-      page.on('console', (msg) => console.log('Campanhas:', msg.text()))
+    if (this.page !== undefined) {
+      try {
+        await this.page.goto(process.env.URL!, { waitUntil: 'networkidle2' })
+        await this.page.content()
+        this.page.on('console', (msg) => console.log('Campanhas:', msg.text()))
 
-      const allImages = await page.evaluate((selector) => {
-        // const images = Array.from(document.querySelectorAll('img'))
-        const querySelector = document.querySelectorAll(selector)
-        const images = Array.from(querySelector)
-        const imageList: IImages[] = []
-        images.map((image) => {
-          let source: string
-          if (selector === 'img') {
-            source = (image as HTMLImageElement).src
-          } else {
-            source = (image as HTMLAnchorElement).href
-          }
-          const srcPaths = source.split('/')
-          const filename = srcPaths[srcPaths.length - 1]
+        const allImages = await this.page!.evaluate((selector) => {
+          const querySelector = document.querySelectorAll(selector)
+          const images = Array.from(querySelector)
+          const imageList: IImages[] = []
+          images.map((image) => {
+            let source: string
+            if (selector === 'img') {
+              source = (image as HTMLImageElement).src
+            } else {
+              source = (image as HTMLAnchorElement).href
+            }
+            const srcPaths = source.split('/')
+            const filename = srcPaths[srcPaths.length - 1]
 
-          return imageList.push({ source, filename })
-        })
-        return imageList
-      }, selector)
-      await page.close()
-      return allImages
-    } catch (err) {
-      console.log(err)
+            return imageList.push({ source, filename })
+          })
+          return imageList
+        }, selector)
+        await this.page.close()
+        return allImages
+      } catch (err) {
+        console.log(err)
+      }
     }
   }
 
@@ -99,7 +106,7 @@ class ExtractImages {
       const imageLinks: IImages[] | undefined = await this.extractImageLinks(selector)
       if (!imageLinks) return
       for (const image of imageLinks) {
-        const filename = `./${process.env.DESTINATION_FOLDER}/${image.filename}`
+        const filename = `${process.env.DESTINATION_FOLDER}/${image.filename}`
         if (fs.existsSync(filename)) {
           return
         }
@@ -113,8 +120,6 @@ class ExtractImages {
     }
   }
 }
-
-const imagesFrom = new ExtractImages()
 
 inquirer
   .prompt([
@@ -130,6 +135,9 @@ inquirer
     }
   ])
   .then(async (selector) => {
+    const imagesFrom = new ExtractImages()
+    await imagesFrom.init()
+
     if (selector.selector === 'other') {
       inquirer
         .prompt([{
@@ -137,8 +145,8 @@ inquirer
           message: "What's the CSS Selector?",
           default: 'img'
         }])
-        .then((selector) => {
-          imagesFrom.run(selector.selector)
+        .then(async (selector) => {
+          await imagesFrom.run(selector.selector)
         })
         .catch((error) => {
           if (error.isTtyError) {
