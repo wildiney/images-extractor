@@ -1,10 +1,14 @@
 {
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true,
+    // "source.organizeImports": true
   },
   "javascript.format.insertSpaceBeforeFunctionParenthesis": true,
+  "typescript.format.insertSpaceBeforeFunctionParenthesis": true,
+  "typescript.format.insertSpaceAfterConstructor": true,
   "eslint.validate": [
-    "javascript"
+    "javascript",
+    "typescript"
   ],
   "cSpell.diagnosticLevel": "Hint"
 }
