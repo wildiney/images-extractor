@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node ./dist/app.js",
+    "dev": "ts-node ./src/app.ts"
   },
   "keywords": [],
   "author": "",
@@ -13,13 +14,18 @@
     "dotenv": "^8.6.0",
     "inquirer": "^8.2.0",
     "node-fetch": "^2.6.6",
-    "puppeteer": "^8.0.0"
+    "puppeteer": "^8.0.0",
+    "ts-node-dev": "^1.1.8"
   },
   "devDependencies": {
+    "@types/inquirer": "^8.2.0",
+    "@types/node-fetch": "^2.6.1",
+    "@typescript-eslint/eslint-plugin": "^5.15.0",
+    "@typescript-eslint/parser": "^5.15.0",
     "eslint": "^7.32.0",
     "eslint-config-standard": "^16.0.3",
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^4.3.1"
+    "eslint-plugin-promise": "^5.2.0"
   }
 }
